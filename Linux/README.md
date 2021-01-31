@@ -30,3 +30,5 @@ git remote set-url origin https://www.github.com/GeraldRyan/scripts.git
 (substituting your names). 
 
 Then you can use the git-open command but not push without having to manually re-enter password. This may only apply to some and never affected me on windows. (I believe they have their own system wide credential manager. I believe you can use one in Linux stored as plaintext)
+
+Testing to see if works. 
