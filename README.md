@@ -5,7 +5,7 @@ Scripts of all types and flavors
 To install these git scripts/new git commands, find the applicable directory that git or bash runs its commands and place these applicable files inside. 
 
 **Windows:** For me on windows with git bash, it is "C:\Program Files\Git\usr\bin" and I have that pinned to quick access  
-**Linux:** Add a new directory to your path or just place file in directory currently in path. I placed mine in usr/local/bin. Remember to make file an executable. Note, there is a handy "Nautilus Admin" tool you can install: sudo apt install as follows: ```sudo apt-get install nautilus-admin``` that lets you open new directories as root inside Nautilus (the name for Linux's "File Explorer") even when you're not in nautilus as root, inside the context (right click) menu. Very convenient also. You can set the file to executable inside the file properties via the GUI. 
+**Linux:** Add a new directory to your path or just place file in directory currently in path. I placed mine in usr/local/bin. Remember to make file an executable. Note, there is a handy "Nautilus Admin" tool you can install: sudo apt install as follows: ```sudo apt-get install nautilus-admin``` that lets you open new directories as root inside Nautilus (the name for Linux's "File Explorer") even when you're not in nautilus as root, inside the context (right click) menu. Very convenient also. You can set the file to executable inside the file properties via the GUI.  
 **Mac**: if someone wants to test these scripts for me on a mac, that would be wonderful! From the docs, I see that Mac's terminal uses the same 'open' command as windows, so they should be compatible (as opposed to Linux, which uses xdg-open), but this is untested.
 
 
