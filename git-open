@@ -1,0 +1,7 @@
+#!/bin/bash
+url="$(git config --get remote.origin.url)"
+if [ -z $url ]; then
+  echo "There is no remote specified [or URL is null]"
+else
+  open $url
+fi
