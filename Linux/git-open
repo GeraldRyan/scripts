@@ -3,5 +3,7 @@ url="$(git config --get remote.origin.url)"
 if [ -z $url ]; then
   echo "There is no remote specified [or URL is null]"
 else
-  xdg-open $url
+  # echo ${url/git@github.com:/https://www.github.com/}
+  # xdg-open $url
+  xdg-open echo ${url/git@github.com:/https://www.github.com/}
 fi
