@@ -1,4 +1,4 @@
-#Install
+#Install  
 Simply put files in directory accessed as part of "Path" environmental variable, and make sure they are executables per permission (if that's how it works on macs). I know Windows and Linux and two out of three ain't bad. 
 
 Note, these files are currently untested. Safe, just untested on a Mac. 
