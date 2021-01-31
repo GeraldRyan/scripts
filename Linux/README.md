@@ -20,15 +20,9 @@ Where your username and repo name are used.
 
 Then it doesn't ask for your password.
 
-However this changes the url that is returned using my git-open command. 
+This used to break the git-open command, but no longer! It is now fixed by dynamic substring pattern substitution (my terminology) to be more robust and dynamic
 
-It appears, using the methods above on certain platforms, you can't yet have the best of both worlds. The fix may be easy (find another way to access repo URL) but right now that's the state of things. 
-
-To change your remote origin back, use the following command:
+Incidentally, to change your remote origin back, use the following command:
 git remote set-url origin https://www.github.com/GeraldRyan/scripts.git
 
-(substituting your names). 
-
-Then you can use the git-open command but not push without having to manually re-enter password. This may only apply to some and never affected me on windows. (I believe they have their own system wide credential manager. I believe you can use one in Linux stored as plaintext)
-
-Testing to see if works. 
+(substituting your username and repo name of course). 
