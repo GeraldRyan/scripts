@@ -1,0 +1,27 @@
+#!/bin/bash
+# directory=$
+recursive="-r"
+if(($#<1));
+then
+echo "Not enough args. Please specific -r for recursive (if directory) and directory or file to remove from index"
+exit 0
+fi
+
+if (test $1 == "-r" );
+then
+if (($#<2));
+then
+echo "Too few args. Please enter a valid directory to remove from the index"
+else
+echo "Recursively unstaging $2 from index"
+echo "git rm -r --cached $2"
+git rm -r --cached $2
+exit 0
+fi
+else
+# Remove a single file or a directory non recursively
+echo "Removing $1 from index"
+echo "git rm --cached $1" 
+git rm --cached $1 
+fi
+

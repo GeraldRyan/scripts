@@ -15,6 +15,7 @@ To install these git scripts/new git commands, find the applicable directory tha
 (Flags are optional)
 2. "git open" opens your local repo's remote repository (if it exists) inside your default browser for convenience.
 3. "git index" is equivalent to ```git ls-tree -r master --name-only```, displaying files currently tracked in your index
+4. "git unstage" [-r] [<file | directory>] unstages a file or directory from the index. Equivalent to and wrapper for ```git rm [-r] --cached file|dir```  
 
 **FYI:** It turns out if you create a script as a bash command and prepend git- to the file name: i.e. command is "_cp_" and file name is _git-cp_, then you can run the command/script by calling "_git cp_" (or whatever your command name was) based on the file name. You could just create the file as its own command without the "_git-_" part, but if you intend to use it inside and exclusively with git, it seems more semantic to do it the git way and also avoids potential namespace collisions- e.g. "_git open_" vs "_open_", which is it's own command (windows at least, and used by the git-open script). 
 
