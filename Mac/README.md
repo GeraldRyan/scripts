@@ -17,4 +17,4 @@ Run **git cp -h** for help.
 **git cp -d** pushes to 'default' branch, which is current checked out branch
 **git cp -d -m "bar"** is the one-liner
 
-It seems to work even without setting upstream amazingly on new branches. 
+It seems to work even without setting upstream on new branches. 
