@@ -21,7 +21,7 @@ Run **git cp -h** for help.
 **git cp** with no flags prompts user for commit message and branch to push to.
   
 **git cp -m "foo"** commits with given message 
-**git cp -d** pushes to 'default' branch, which is current checked out branch
-**git cp -d -m "bar"** is the one-liner
+**git cp -d** pushes to 'default' branch, which is current checked out branch 
+**git cp -d -m "bar"** is the one-liner 
 
 It seems to work even without setting upstream on new branches. 
