@@ -18,10 +18,10 @@ This basically commits and pushes in one go. Note that it is not atomic- commit 
 
 **git cp -h** is help. 
 
-**git cp** with no flags prompts user for commit message and branch to push. 
+**git cp** with no flags prompts user for commit message and branch to push.  
   
-**git cp -m "foo"** commits with given message 
-**git cp -d** pushes to 'default' branch, which is currently checked out branch 
-**git cp -d -m "bar"** e.g. does it all as one-liner 
+**git cp -m "foo"** commits with given message.  
+**git cp -d** pushes to 'default' branch, which is currently checked out branch  
+**git cp -d -m "bar"** e.g. does it all as one-liner  
 
-It seems to work for new branches even without setting upstream. 
+It seems to work for new branches even without setting upstream.  
