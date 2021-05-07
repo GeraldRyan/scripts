@@ -18,7 +18,7 @@ This basically commits and pushes in one go. Note that it is not atomic- commit 
 
 Run **git cp -h** for help. 
 
-**git cp** with no flags prompts user for commit message and branch to push and all goes well.
+**git cp** with no flags prompts user for commit message and branch to push to.
   
 **git cp -m "foo"** commits with given message 
 **git cp -d** pushes to 'default' branch, which is current checked out branch
