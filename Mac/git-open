@@ -4,6 +4,7 @@ if [ -z $url ]; then
   echo "There is no remote specified [or URL is null]"
 else
   url=${url/git@github.com:/https://www.github.com/}
+  echo $url
   open $url
   # xdg-open echo ${url/git@github.com:/https://www.github.com/} # Does not work
 fi
