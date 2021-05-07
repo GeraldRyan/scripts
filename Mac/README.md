@@ -3,7 +3,14 @@ Put script files in directory of your choice, add to path for your shell, AND MA
 
 # USAGE
 
+## git echo ##
+echos "hello world" 
+
+## git open ##
+
 git-open enables **git open** command, which opens git remote repo url in default browser for your convenience. 
+
+## git cp ##
 
 git-cp enables **git cp** command. 
 
