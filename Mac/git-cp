@@ -2,7 +2,7 @@
 current_branch=$((git symbolic-ref HEAD 2>/dev/null || echo "(unnamed branch)")|cut -d/ -f3-)
 echo the current branch is $current_branch
 source="origin"
-while getopts ":m:s:b:dh" opt; do
+while getopts ":m:t:s:b:dh" opt; do
 case ${opt} in 
     h )
       echo "Usage:"
@@ -12,6 +12,7 @@ echo "    git cp -m 'message' Specifies a commit message at the command line. Wi
 echo "    git cp -b 'branch' specifies branch to push to, otherwise it will prompt user for input if '-d' not used"
 echo "    git cp -d to push to current checked out (i.e. "default") branch "	
 echo "    git cp -s 'source' to specify the source, otherwise default origin" 
+echo " .  git cp -t tag the commit and then push the tag"
 exit 0
 ;;
 m ) 
@@ -25,17 +26,15 @@ branch=$current_branch
 ;;
 s ) 
 source=$OPTARG
-
-
+;;
+t )
+tag=$OPTARG
 esac 
 done
-
-
 if [[ "$message" = "" ]]
 then
 read -r -p 'Commit message: ' message
 fi
-
 if [[ "$branch" = "" ]]
 then
 read -r -p 'Branch: ' branch
@@ -44,5 +43,12 @@ fi
 echo $message
 git add .
 git commit -m "$message"
+if [ -n "$tag" ] 
+then
+echo "Pushing tag $tag"
+git tag "$tag"
+echo "git push -u $source "$branch" && git push --tags"
+git push -u $source "$branch" && git push --tags
+else
 git push -u $source "$branch"
-
+fi
