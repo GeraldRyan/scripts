@@ -1,0 +1,4 @@
+#!/bin/bash
+rs=$(git grep --fixed-strings $1 $(git rev-list --all) | head -1)
+commit=$(echo $rs | grep -oE "[0-9a-f]{40}")
+echo $(git branch -a --contains $commit)
