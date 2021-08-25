@@ -1,0 +1,8 @@
+#!/bin/bash
+url="$(git config --get remote.origin.url)"
+current_branch=$((git symbolic-ref HEAD 2>/dev/null || echo "(unnamed branch)")|cut -d/ -f3-)
+current_branch_origin="origin/${current_branch}"
+echo 'Comparing current branch local with remote'
+git fetch 
+echo "diffing"
+git diff $current_branch $current_branch_origin
