@@ -1,8 +1,13 @@
 #!/bin/bash
 url="$(git config --get remote.origin.url)"
 
-while getopts "b" opt; do
+while getopts "bc:" opt; do
   case ${opt} in
+  c)
+    stem="commit/"
+    commit=$OPTARG
+    url="${url}${stem}${commit}"
+    ;;
   b)
     branch=$(git branch | sed -n -e 's/^\* \(.*\)/\1/p')
     url="${url}/tree/${branch}"
