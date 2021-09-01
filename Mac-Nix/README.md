@@ -1,20 +1,24 @@
 # Installation
-Put script files in directory of your choice, add to path for your shell, AND MAKE SURE THEY ARE CHMODed AS EXECUTABLES (or you'll get error "not a git command"). 
+Download scripts
+Add path for your shell startup script
+Chmod +x each file to make executable
 
 # USAGE
 
 ## git echo ##
-echos "hello world" 
+echos "hello world" // POC
 
 ## git open ##
 
 git-open enables **git open** command, which opens git remote repo url in default browser for your convenience. 
+-c <commit> opens said commit
+-b opens current branch instead of master
 
 ## git cp ##
 
 git-cp enables **git cp** command. 
 
-This basically commits and pushes in one go. Note that it is not atomic- commit can succeed while the push fails (usually for authentication reasons) 
+Commits and pushes in one go. Not an atomic operation: commit could succeed while push fails or vice versa
 
 **git cp -h** is help. 
 
