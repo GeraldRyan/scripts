@@ -1,0 +1,12 @@
+#!/bin/bash
+while getopts "h" opt; do
+case ${opt} in 
+    h )
+      echo "Usage:"
+echo "    cmd: git deltas [commit hash]"
+echo "    Show the changed files of a given commit."
+exit 0  
+esac
+done
+echo "Changed files in commit $1"
+git diff-tree --no-commit-id --name-only -r $1
