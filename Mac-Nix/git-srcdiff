@@ -1,45 +1,44 @@
 #!/bin/bash
 
 # TODO COMPARE ACROSS ALL BRANCHES. WHY NOT!! MULTI BRANCHES COULD HAVE SAME IMAGE. ITERATE THROUGGH ALL BRANCHES, GET ALL COMMITS OF SAME SHORTHASH
-# DOCS -- this script is intended to detect changes to src folder of current branch. 
-# Ultimately returning earliest commit of identical src tree  
-# 
-# Motivation (WHY BOTHER) 
-#  with much coding done on infrastructure/root level (yaml files, helm charts, jenkinsfiles, deployment information, many changes are commited to a github repo without a representtive change in src code. 
-#  Changes to source code itself could be useful to konw, for intance in buildin ga docker imnage or pushing to an imnage repository. Why rebuild the wheel when teh wheel hasn't changed? 
-#  This script leverages the power of git internals, the nature of git asw a file system 
+# DOCS -- this script is intended to detect changes to src folder of current branch.
+# Ultimately returning earliest commit of identical src tree
+#
+# Motivation (WHY BOTHER)
+#  with much coding done on infrastructure/root level (yaml files, helm charts, jenkinsfiles, deployment information, many changes are commited to a github repo without a representtive change in src code.
+#  Changes to source code itself could be useful to konw, for intance in buildin ga docker imnage or pushing to an imnage repository. Why rebuild the wheel when teh wheel hasn't changed?
+#  This script leverages the power of git internals, the nature of git asw a file system
 # In brief, it tracks for changes in the hash of the working tree (i.e. 'scr' directory)
 
 # TODO CLarify waht it returns
 # E.g. if for 10 commits noobody worked in src but only in root level config, will return the commit hash of the 10th base commit so if you build an image at that time, you can search for that image
 # TODO or i could return an array of identical commits to search through for that image hash
 
-
 # USAGE:
-# Test/POC: Put this at or near the bottom, after function definitions. 
+# Test/POC: Put this at or near the bottom, after function definitions.
 ## POC
 # for i in {0..99}; do
 # 	grab_srctree_hash_from_backindex $i
 # done
 
-
 # TODO code is overly verbose. One method was created for this feature when a better way was found midway through (leveraging existing git commands, specifically git ls-tree)
-## TODO cleanup code. Those older functions could perhyaps be salvaged as utility functions for later date. 
-
-
-
-
-
-
+## TODO cleanup code. Those older functions could perhyaps be salvaged as utility functions for later date.
 
 CATFILE="git cat-file -p"
 HEAD_HASH=$(git rev-parse HEAD) # hash of head itself (i.e. commit)
 
+# TOCHECK Will refs/heads/ be correct in the origin repo?
+BRANCHES=()
+function populate_branches() {
+	for branch in $(git for-each-ref --format='%(refname)' refs/heads/); do
+		BRANCHES+=($branch)
+	done
+}
+populate_branches
+# printf '%s\n' "${branches[@]}" # confirm # in refs/heads/abcde form
 
-
-
-
-
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+echo "Current Branch: $CURRENT_BRANCH"
 
 # returns (stdout) tree of head commit
 function get_head_tree_hash() {
@@ -126,6 +125,24 @@ function get_nth_commit_hash() {
 	echo $hash
 }
 
+# param is just branch name - plumbing to be iterated over in for loop
+function get_all_commit_shorts_for_branch() {
+	local index=0
+	local curr_src_tree_hash=$HEAD_SRC_TREE_HASH
+	local commitArray=()
+	local commitArrayShorthash=() # 7 chars
+	echo -e "\033[0;32m Note: Ignore last commit. It's a hanger-on. (2nd to last is breaking change commit)\033[0m"
+	while [[ $HEAD_SRC_TREE_HASH == $curr_src_tree_hash ]]; do
+		curr_src_tree_hash=$(grab_srctree_hash_from_backindex $index)
+		curr_commit=$(git rev-parse HEAD~$index)
+		curr_commit_short=${curr_commit:0:7}
+		echo "current src hash: $curr_src_tree_hash and current commit: $curr_commit_short"
+		index=$((index + 1))
+		commitArray+=($curr_commit)
+		commitArrayShorthash+=(${curr_commit:0:7})
+	done
+}
+
 # function get_nth_commit_srctree_hash() {
 
 # }
@@ -156,22 +173,23 @@ function get_nth_commit_hash() {
 
 ## TABULAR DISPLAY OF WHAT YOU'RE LOOKING FOR AND ARRAY POPULATION OF IDENTICAL COMMITS
 # Note to be pedantic, rev-parse HEAD~n goes back n, but merge commits have =two parents. Path traversed can vary. To access parent 1|2 on merged commmit, HEAD~mcindex^[1|2]
- # This should not affect anything(?) but can explain why git log && github.com shows different (expanded) histories. rev-parse HEAD takes ONE path, git log shows (flatly) 
- # all possible paths. 
- # Also github seems to show last pre-merge commit where src file changed but this script shows subsequent merge commit where file changed. 
- # Github agrees with order too, if you go to branch history of commits, just does not show that as most recent file change. Apparantly merges don't count as changing files from timestamp POV. All's well. 
+# This should not affect anything(?) but can explain why git log && github.com shows different (expanded) histories. rev-parse HEAD takes ONE path, git log shows (flatly)
+# all possible paths.
+# Also github seems to show last pre-merge commit where src file changed but this script shows subsequent merge commit where file changed.
+# Github agrees with order too, if you go to branch history of commits, just does not show that as most recent file change. Apparantly merges don't count as changing files from timestamp POV. All's well.
 index=0
 curr_src_tree_hash=$HEAD_SRC_TREE_HASH
 commitArray=()
 commitArrayShorthash=() # 7 chars
 echo -e "\033[0;32m Note: Ignore last commit. It's a hanger-on. (2nd to last is breaking change commit)\033[0m"
-while [[ $HEAD_SRC_TREE_HASH == $curr_src_tree_hash ]] ;
-do
-curr_src_tree_hash=$(grab_srctree_hash_from_backindex $index)
-curr_commit=$(git rev-parse HEAD~$index); curr_commit_short=${curr_commit:0:7}
-echo "current src hash: $curr_src_tree_hash and current commit: $curr_commit_short"
-index=$((index+1))
-commitArray+=($curr_commit) ; commitArrayShorthash+=(${curr_commit:0:7})
+while [[ $HEAD_SRC_TREE_HASH == $curr_src_tree_hash ]]; do
+	curr_src_tree_hash=$(grab_srctree_hash_from_backindex $index)
+	curr_commit=$(git rev-parse HEAD~$index)
+	curr_commit_short=${curr_commit:0:7}
+	echo "current src hash: $curr_src_tree_hash and current commit: $curr_commit_short"
+	index=$((index + 1))
+	commitArray+=($curr_commit)
+	commitArrayShorthash+=(${curr_commit:0:7})
 done
 ## END Tabular Display
 commitArraySize=${#commitArray[@]}
@@ -181,12 +199,28 @@ echo ${commitArray[2]}
 echo ${commitArray[3]}
 echo ${commitArray[4]}
 echo $commitArraySize
-echo "oldest commit of identical image src code for this branch: ${commitArray[commitArraySize-2]}" # 0 indexed, -1 to right size -1 to remove last straggler (the hanger-on commit)
-
+echo "oldest commit of identical image src code for this branch: ${commitArray[commitArraySize - 2]}" # 0 indexed, -1 to right size -1 to remove last straggler (the hanger-on commit)
 
 echo ${commitArrayShorthash[0]}
 echo ${commitArrayShorthash[1]}
 echo ${commitArrayShorthash[2]}
 echo ${commitArrayShorthash[3]}
 echo ${commitArrayShorthash[4]}
-echo "oldest shorthash of identical image src code: ${commitArrayShorthash[commitArraySize-2]}" # 0 indexed, -1 to right size -1 to remove last straggler (the hanger-on commit)
+echo "oldest shorthash of identical image src code: ${commitArrayShorthash[commitArraySize - 2]}" # 0 indexed, -1 to right size -1 to remove last straggler (the hanger-on commit)
+
+# echo $(git branch) | less -FX | xargs -I {} echo "here {} \n"
+# echo ${branches[1]}
+
+for i in "${BRANCHES[@]}"; do
+	echo "Complete me"
+done
+
+function no_arg() {
+	x=$1
+	if [  -z "$1" ]; then
+		x="indeedwillnotbenull"
+	fi
+	echo "The arg1 $x"
+}
+
+no_arg
