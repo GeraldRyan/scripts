@@ -1,6 +1,6 @@
 #!/bin/bash
 
-
+# TODO COMPARE ACROSS ALL BRANCHES. WHY NOT!! MULTI BRANCHES COULD HAVE SAME IMAGE. ITERATE THROUGGH ALL BRANCHES, GET ALL COMMITS OF SAME SHORTHASH
 # DOCS -- this script is intended to detect changes to src folder of current branch. 
 # Ultimately returning earliest commit of identical src tree  
 # 
@@ -168,8 +168,8 @@ echo -e "\033[0;32m Note: Ignore last commit. It's a hanger-on. (2nd to last is 
 while [[ $HEAD_SRC_TREE_HASH == $curr_src_tree_hash ]] ;
 do
 curr_src_tree_hash=$(grab_srctree_hash_from_backindex $index)
-curr_commit=$(git rev-parse HEAD~$index)
-echo "current src hash: $curr_src_tree_hash and current commit: $curr_commit"
+curr_commit=$(git rev-parse HEAD~$index); curr_commit_short=${curr_commit:0:7}
+echo "current src hash: $curr_src_tree_hash and current commit: $curr_commit_short"
 index=$((index+1))
 commitArray+=($curr_commit) ; commitArrayShorthash+=(${curr_commit:0:7})
 done
@@ -181,7 +181,7 @@ echo ${commitArray[2]}
 echo ${commitArray[3]}
 echo ${commitArray[4]}
 echo $commitArraySize
-echo "oldest commit of identical image src code: ${commitArray[commitArraySize-2]}" # 0 indexed, -1 to right size -1 to remove last straggler (the hanger-on commit)
+echo "oldest commit of identical image src code for this branch: ${commitArray[commitArraySize-2]}" # 0 indexed, -1 to right size -1 to remove last straggler (the hanger-on commit)
 
 
 echo ${commitArrayShorthash[0]}
