@@ -1,39 +1,106 @@
 #!/bin/bash
+
+
+# DOCS -- this script is intended to detect changes to src folder of current branch. 
+# Ultimately returning earliest commit of identical src tree  
+# 
+# Motivation (WHY BOTHER) 
+#  with much coding done on infrastructure/root level (yaml files, helm charts, jenkinsfiles, deployment information, many changes are commited to a github repo without a representtive change in src code. 
+#  Changes to source code itself could be useful to konw, for intance in buildin ga docker imnage or pushing to an imnage repository. Why rebuild the wheel when teh wheel hasn't changed? 
+#  This script leverages the power of git internals, the nature of git asw a file system 
+# In brief, it tracks for changes in the hash of the working tree (i.e. 'scr' directory)
+
+# TODO CLarify waht it returns
+# E.g. if for 10 commits noobody worked in src but only in root level config, will return the commit hash of the 10th base commit so if you build an image at that time, you can search for that image
+# TODO or i could return an array of identical commits to search through for that image hash
+
+
+# USAGE:
+# Test/POC: Put this at or near the bottom, after function definitions. 
+## POC
+# for i in {0..99}; do
+# 	grab_srctree_hash_from_backindex $i
+# done
+
+
+# TODO code is overly verbose. One method was created for this feature when a better way was found midway through (leveraging existing git commands, specifically git ls-tree)
+## TODO cleanup code. Those older functions could perhyaps be salvaged as utility functions for later date. 
+
+
+
+
+
+
+
 CATFILE="git cat-file -p"
 HEAD_HASH=$(git rev-parse HEAD) # hash of head itself (i.e. commit)
 
 
-# gets the tree of the parent commit - catch in stdout
+
+
+
+
+
+# returns (stdout) tree of head commit
 function get_head_tree_hash() {
 	str=($($CATFILE $HEAD_HASH | head -n 1))
 	echo "${str[1]}"
 }
 
-# prints entire main tree multi line i.e. when git cat-file -p TREE HASH
-function print_entire_head_tree(){
-	$CATFILE $(get_head_tree_hash) 
+# first arg must be commit hash
+function get_commit_tree_hash() {
+	str=($($CATFILE $1 | head -n 1))
+	echo "${str[1]}"
+}
+
+# prints entire main tree multi line i.e. when git cat-file -p TREE HASH [for debugging or POC]
+function print_entire_head_tree() {
+	$CATFILE $(get_head_tree_hash)
+}
+
+# prints given commit tree
+function print_given_commit_tree() {
+	$CATFILE $(get_commit_tree_hash $1)
 }
 
 # TODO Stronger regex protection, could intheory find mult matches (false positives)
-function src_tree_line_in_head_tree(){
+function src_tree_line_in_head_tree() {
+
+	#### WOULD HAVE BEEN EASIER - LIVE AND LEARN
+	#### echo $(git ls-tree HEAD src)
+
 	echo $(print_entire_head_tree | ag tree | ag src)
 }
 
-# src_tree_line_in_main_tree
-
-function echo_hw(){
-	echo "hello world"
+# arg1 is commit
+function src_tree_line_in_given_commit() {
+	echo $(print_given_commit_tree $1 | ag tree | ag src)
 }
 
 # [util] first param: ' ' delimited string, second param: index
-function grab_word_from_string(){
+function grab_word_from_string() {
 	local str=$1
 	local strarray=($str)
 	echo ${strarray[$2]}
 }
 
-# NOTE: Due to echo being used as method for returning value from functions, cannot use echo to log to console for standard out or debugging under this schema. 
-function hash_of_head_src_tree(){
+# redundant - depricates the above functions when merged into production
+# arg1 is index
+function grab_srctree_hash_from_backindex() {
+	# git ls-tree HEAD~$1 src # print entire line for debug
+	grab_word_from_string "$(git ls-tree HEAD~$1 src)" 2
+}
+
+## POC
+# for i in {0..99}; do
+# 	grab_srctree_hash_from_backindex $i
+# done
+
+##
+# NOTE: Due to echo being used as method for returning value from functions, be careful about using echo to log to console
+##
+
+function hash_of_head_src_tree() {
 	local line=$(src_tree_line_in_head_tree)
 	# printf "${line}"
 	# linearray=($line)
@@ -44,16 +111,55 @@ function hash_of_head_src_tree(){
 HEAD_SRC_TREE_HASH=$(hash_of_head_src_tree)
 echo -e "Head source tree hash: $HEAD_SRC_TREE_HASH\n   (Watching for change)"
 
-# NOTE: Due to echo being used as method for returning value from functions, cannot use echo to log to console for standard out or debugging under this schema. 
-function hash_of_src_tree_in_given_commit(){
-	local line=$(src_tree_line_in_head_tree)
+# arg1 is commit
+function hash_of_src_tree_in_given_commit() {
+	local COMMITHASH=$1
+	local line=$(src_tree_line_in_given_commit $COMMITHASH)
 	# printf "${line}"
 	# linearray=($line)
 	# echo ${!linearray[@]}
 	grab_word_from_string "$line" 2
 }
 
+function get_nth_commit_hash() {
+	local hash=$(git rev-parse HEAD~$1)
+	echo $hash
+}
 
+# function get_nth_commit_srctree_hash() {
 
+# }
+
+# get_nth_commit_hash 0
+# get_nth_commit_hash 1
+# get_nth_commit_hash 2
+# get_nth_commit_hash 3
+# get_nth_commit_hash 4
+# echo "last 4 hashes ^^"
+# hash_of_src_tree_in_given_commit a502af1f563e7feb38b8ad8d1dc06e937a02524c
+# hash_of_src_tree_in_given_commit b7c1d172
+# hash_of_src_tree_in_given_commit 2145d0455
+# hash_of_src_tree_in_given_commit 2be2e873d95fd9d043b0d037842725f3da2b44a3
+
+# function get_prev_commit_hash() {
+# 	local hash=$(git rev-parse HEAD^)
+# }
 
 # walk back n commits until hash of src tree changes. .....
+
+# }
+
+## POC
+# for i in {0..99}; do
+# 	grab_srctree_hash_from_backindex $i
+# done
+
+index=0
+curr_src_tree_hash=$HEAD_SRC_TREE_HASH
+while [[ $HEAD_SRC_TREE_HASH == $curr_src_tree_hash ]] ;
+do
+curr_src_tree_hash=$(grab_srctree_hash_from_backindex $index)
+curr_commit=$(git rev-parse HEAD~$index)
+echo "current src hash: $curr_src_tree_hash and current commit: $curr_commit"
+index=$((index+1))
+done
