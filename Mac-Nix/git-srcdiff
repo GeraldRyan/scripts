@@ -154,12 +154,39 @@ function get_nth_commit_hash() {
 # 	grab_srctree_hash_from_backindex $i
 # done
 
+## TABULAR DISPLAY OF WHAT YOU'RE LOOKING FOR AND ARRAY POPULATION OF IDENTICAL COMMITS
+# Note to be pedantic, rev-parse HEAD~n goes back n, but merge commits have =two parents. Path traversed can vary. To access parent 1|2 on merged commmit, HEAD~mcindex^[1|2]
+ # This should not affect anything(?) but can explain why git log && github.com shows different (expanded) histories. rev-parse HEAD takes ONE path, git log shows (flatly) 
+ # all possible paths. 
+ # Also github seems to show last pre-merge commit where src file changed but this script shows subsequent merge commit where file changed. 
+ # Github agrees with order too, if you go to branch history of commits, just does not show that as most recent file change. Apparantly merges don't count as changing files from timestamp POV. All's well. 
 index=0
 curr_src_tree_hash=$HEAD_SRC_TREE_HASH
+commitArray=()
+commitArrayShorthash=() # 7 chars
+echo -e "\033[0;32m Note: Ignore last commit. It's a hanger-on. (2nd to last is breaking change commit)\033[0m"
 while [[ $HEAD_SRC_TREE_HASH == $curr_src_tree_hash ]] ;
 do
 curr_src_tree_hash=$(grab_srctree_hash_from_backindex $index)
 curr_commit=$(git rev-parse HEAD~$index)
 echo "current src hash: $curr_src_tree_hash and current commit: $curr_commit"
 index=$((index+1))
+commitArray+=($curr_commit) ; commitArrayShorthash+=(${curr_commit:0:7})
 done
+## END Tabular Display
+commitArraySize=${#commitArray[@]}
+echo ${commitArray[0]}
+echo ${commitArray[1]}
+echo ${commitArray[2]}
+echo ${commitArray[3]}
+echo ${commitArray[4]}
+echo $commitArraySize
+echo "oldest commit of identical image src code: ${commitArray[commitArraySize-2]}" # 0 indexed, -1 to right size -1 to remove last straggler (the hanger-on commit)
+
+
+echo ${commitArrayShorthash[0]}
+echo ${commitArrayShorthash[1]}
+echo ${commitArrayShorthash[2]}
+echo ${commitArrayShorthash[3]}
+echo ${commitArrayShorthash[4]}
+echo "oldest shorthash of identical image src code: ${commitArrayShorthash[commitArraySize-2]}" # 0 indexed, -1 to right size -1 to remove last straggler (the hanger-on commit)
