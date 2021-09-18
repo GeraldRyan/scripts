@@ -1,0 +1,59 @@
+#!/bin/bash
+CATFILE="git cat-file -p"
+HEAD_HASH=$(git rev-parse HEAD) # hash of head itself (i.e. commit)
+
+
+# gets the tree of the parent commit - catch in stdout
+function get_head_tree_hash() {
+	str=($($CATFILE $HEAD_HASH | head -n 1))
+	echo "${str[1]}"
+}
+
+# prints entire main tree multi line i.e. when git cat-file -p TREE HASH
+function print_entire_head_tree(){
+	$CATFILE $(get_head_tree_hash) 
+}
+
+# TODO Stronger regex protection, could intheory find mult matches (false positives)
+function src_tree_line_in_head_tree(){
+	echo $(print_entire_head_tree | ag tree | ag src)
+}
+
+# src_tree_line_in_main_tree
+
+function echo_hw(){
+	echo "hello world"
+}
+
+# [util] first param: ' ' delimited string, second param: index
+function grab_word_from_string(){
+	local str=$1
+	local strarray=($str)
+	echo ${strarray[$2]}
+}
+
+# NOTE: Due to echo being used as method for returning value from functions, cannot use echo to log to console for standard out or debugging under this schema. 
+function hash_of_head_src_tree(){
+	local line=$(src_tree_line_in_head_tree)
+	# printf "${line}"
+	# linearray=($line)
+	# echo ${!linearray[@]}
+	grab_word_from_string "$line" 2
+}
+
+HEAD_SRC_TREE_HASH=$(hash_of_head_src_tree)
+echo -e "Head source tree hash: $HEAD_SRC_TREE_HASH\n   (Watching for change)"
+
+# NOTE: Due to echo being used as method for returning value from functions, cannot use echo to log to console for standard out or debugging under this schema. 
+function hash_of_src_tree_in_given_commit(){
+	local line=$(src_tree_line_in_head_tree)
+	# printf "${line}"
+	# linearray=($line)
+	# echo ${!linearray[@]}
+	grab_word_from_string "$line" 2
+}
+
+
+
+
+# walk back n commits until hash of src tree changes. .....
