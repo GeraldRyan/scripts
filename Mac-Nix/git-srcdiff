@@ -25,16 +25,16 @@
 ## TODO cleanup code. Those older functions could perhyaps be salvaged as utility functions for later date.
 
 CATFILE="git cat-file -p"
-HEAD_HASH=$(git rev-parse HEAD) # hash of head itself (i.e. commit)
+HEAD_HASH=$(git rev-parse HEAD) # hash of head commit itself
 
 # TOCHECK Will refs/heads/ be correct in the origin repo?
 BRANCHES=()
-function populate_branches() {
+function get_branches() {
 	for branch in $(git for-each-ref --format='%(refname)' refs/heads/); do
 		BRANCHES+=($branch)
 	done
 }
-populate_branches
+get_branches
 # printf '%s\n' "${branches[@]}" # confirm # in refs/heads/abcde form
 
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
