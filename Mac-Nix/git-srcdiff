@@ -24,70 +24,86 @@
 # TODO code is overly verbose. One method was created for this feature when a better way was found midway through (leveraging existing git commands, specifically git ls-tree)
 ## TODO cleanup code. Those older functions could perhyaps be salvaged as utility functions for later date.
 
-CATFILE="git cat-file -p"
-HEAD_HASH=$(git rev-parse HEAD) # hash of head commit itself
+CATFILECMD="git cat-file -p"
+HEAD_HASH=$(git rev-parse HEAD)
 
-# TOCHECK Will refs/heads/ be correct in the origin repo?
-BRANCHES=()
 function get_branches() {
 	for branch in $(git for-each-ref --format='%(refname)' refs/heads/); do
-		BRANCHES+=($branch)
+		# BRANCHES+=($branch)
+		echo $branch
 	done
 }
-get_branches
-# printf '%s\n' "${branches[@]}" # confirm # in refs/heads/abcde form
+
+BRANCHES=($(get_branches))
+# printf '%s\n' "${branches[@]}" # refs/heads/abcde form # CONFIRMATION
 
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-echo "Current Branch: $CURRENT_BRANCH"
+# echo "Current Branch: $CURRENT_BRANCH"
 
-# returns (stdout) tree of head commit
-function get_head_tree_hash() {
-	str=($($CATFILE $HEAD_HASH | head -n 1))
+echoerr() { echo -e "\033[0;31m$@\033[0m" 1>&2; } # UTILITY FUNCTION
+
+# returns stdout treehash of commit (overal treehash, not src treehash)
+# $1 is commit hash, HEAD hash if null
+function get_commit_treehash() {
+	a=$1
+	if [ -z "$1" ]; then
+		a=$HEAD_HASH
+	fi
+	str=($($CATFILECMD $a | head -n 1))
 	echo "${str[1]}"
 }
 
-# first arg must be commit hash
-function get_commit_tree_hash() {
-	str=($($CATFILE $1 | head -n 1))
-	echo "${str[1]}"
-}
-
-# prints entire main tree multi line i.e. when git cat-file -p TREE HASH [for debugging or POC]
+# prints entire main tree -> i.e. -> 'git cat-file -p' TREE HASH [for debugging or POC]
 function print_entire_head_tree() {
-	$CATFILE $(get_head_tree_hash)
+	echo "##### ${FUNCNAME[0]}  IS BEING CALLED ####"
+	$CATFILECMD $(get_commit_treehash)
 }
 
-# prints given commit tree
+# prints given commit tree (if arg1 is null, HEAD)
 function print_given_commit_tree() {
-	$CATFILE $(get_commit_tree_hash $1)
+	a=$1
+	if [ -z "$1" ]; then
+		$CATFILECMD $(print_entire_head_tree)
+	fi
+	$CATFILECMD $(get_commit_treehash $1)
 }
 
 # TODO Stronger regex protection, could intheory find mult matches (false positives)
 function src_tree_line_in_head_tree() {
 
-	#### WOULD HAVE BEEN EASIER - LIVE AND LEARN
-	#### echo $(git ls-tree HEAD src)
-
+	#### WOULD HAVE BEEN EASIER TO JUST DO:
+	# echo $(git ls-tree HEAD src)
+	#### live and learn
 	echo $(print_entire_head_tree | ag tree | ag src)
 }
 
-# arg1 is commit
+# arg1 is commit hash, else HEAD
 function src_tree_line_in_given_commit() {
+	a=$1
+	if [ -z "$1" ]; then
+		$CATFILECMD $(src_tree_line_in_head_tree)
+	fi
 	echo $(print_given_commit_tree $1 | ag tree | ag src)
 }
 
-# [util] first param: ' ' delimited string, second param: index
+# [util] first param: string, second param: index
 function grab_word_from_string() {
+	# echoerr "##### ${FUNCNAME[0]}  IS BEING CALLED ####"
 	local str=$1
 	local strarray=($str)
 	echo ${strarray[$2]}
 }
 
 # redundant - depricates the above functions when merged into production
-# arg1 is index
+# arg1 is index arg2 is commit
 function grab_srctree_hash_from_backindex() {
 	# git ls-tree HEAD~$1 src # print entire line for debug
-	grab_word_from_string "$(git ls-tree HEAD~$1 src)" 2
+	if [ -z "$2" ]; then
+		local a="HEAD"
+	else 
+		local a="$2"
+	fi
+	grab_word_from_string "$(git ls-tree $a~$1 src)" 2
 }
 
 ## POC
@@ -101,22 +117,41 @@ function grab_srctree_hash_from_backindex() {
 
 function hash_of_head_src_tree() {
 	local line=$(src_tree_line_in_head_tree)
-	# printf "${line}"
-	# linearray=($line)
-	# echo ${!linearray[@]}
 	grab_word_from_string "$line" 2
 }
 
-HEAD_SRC_TREE_HASH=$(hash_of_head_src_tree)
-echo -e "Head source tree hash: $HEAD_SRC_TREE_HASH\n   (Watching for change)"
+# $1 is branch
+function get_srctree_hash_of_branchhead() {
+	local branch=$1
+	local commithash=$(git rev-parse $branch)
+	local line="$(git ls-tree $branch src)"
+	local hash=$(grab_word_from_string "$line" 2)
+	echo $hash
+}
 
-# arg1 is commit
+HEAD_SRC_TREE_HASH=$(hash_of_head_src_tree)
+
+# get head hash of current branch, if default, checked out branch.
+function get_head_hash_of_branch() {
+	branch=$1
+	if [ -z "$1" ]; then
+		echo $(git rev-parse HEAD) # hash of head commit itself
+		return
+	fi
+	echo $(git rev-parse $branch)
+}
+
+# arg1 is commit, if null HASH
 function hash_of_src_tree_in_given_commit() {
-	local COMMITHASH=$1
-	local line=$(src_tree_line_in_given_commit $COMMITHASH)
-	# printf "${line}"
-	# linearray=($line)
-	# echo ${!linearray[@]}
+	if [ -z "$1" ]; then
+		local line=$(src_tree_line_in_head_tree)
+	else
+		local COMMITHASH=$1
+		local line=$(src_tree_line_in_given_commit $COMMITHASH)
+		# printf "${line}"
+		# linearray=($line)
+		# echo ${!linearray[@]}
+	fi
 	grab_word_from_string "$line" 2
 }
 
@@ -125,42 +160,43 @@ function get_nth_commit_hash() {
 	echo $hash
 }
 
+TARGET_SRCTREE_HASH=$HEAD_SRC_TREE_HASH  # IMPORTANT - DO NOT WANT A MOVING TARGET OR WHAT'S THE POINT. HAVE TO HAVE SOME IDEAL WAY TO SELECT TARGET SRC 
 # param is just branch name - plumbing to be iterated over in for loop
-function get_all_commit_shorts_for_branch() {
+function get_all_commits_for_branch_pretty() {
+	if [ -z "$1" ]; then
+		local branch=$(git rev-parse --abbrev-ref HEAD)
+		local TOP_COMMIT=$(git rev-parse HEAD)
+		BRANCHHEAD_SRCTREE_HASH=$HEAD_SRC_TREE_HASH
+	else
+		local branch=$1
+		BRANCHHEAD_SRCTREE_HASH=$(get_srctree_hash_of_branchhead $1)
+		local TOP_COMMIT=$(git rev-parse $branch)
+	fi
 	local index=0
-	local curr_src_tree_hash=$HEAD_SRC_TREE_HASH
-	local commitArray=()
-	local commitArrayShorthash=() # 7 chars
-	echo -e "\033[0;32m Note: Ignore last commit. It's a hanger-on. (2nd to last is breaking change commit)\033[0m"
-	while [[ $HEAD_SRC_TREE_HASH == $curr_src_tree_hash ]]; do
-		curr_src_tree_hash=$(grab_srctree_hash_from_backindex $index)
-		curr_commit=$(git rev-parse HEAD~$index)
+	local curr_src_tree_hash=$BRANCHHEAD_SRCTREE_HASH
+	echo -e "\033[0;32m Branch: $branch Note: Ignore last commit. It's a hanger-on. (2nd to last is breaking change commit)\033[0m"
+	while [[ $TARGET_SRCTREE_HASH == $curr_src_tree_hash ]]; do
+		curr_src_tree_hash=$(grab_srctree_hash_from_backindex $index $TOP_COMMIT)
+		curr_commit=$(git rev-parse $TOP_COMMIT~$index)
 		curr_commit_short=${curr_commit:0:7}
-		echo "current src hash: $curr_src_tree_hash and current commit: $curr_commit_short"
+		echo "current src hash: $curr_src_tree_hash and current commit:$curr_commit $curr_commit_short"
 		index=$((index + 1))
-		commitArray+=($curr_commit)
-		commitArrayShorthash+=(${curr_commit:0:7})
+		# commitArray+=($curr_commit)
+		# commitArrayShorthash+=(${curr_commit:0:7})
+	done
+}
+# get_all_commits_for_branch_pretty # default
+# get_all_commits_for_branch_pretty "nb"
+# get_all_commits_for_branch_pretty "foo-branch" # if exists
+
+
+function get_every_single_xbranch_commit_same_src_pretty() {
+	for i in "${BRANCHES[@]}"; do
+		get_all_commits_for_branch_pretty $i
 	done
 }
 
-# function get_nth_commit_srctree_hash() {
-
-# }
-
-# get_nth_commit_hash 0
-# get_nth_commit_hash 1
-# get_nth_commit_hash 2
-# get_nth_commit_hash 3
-# get_nth_commit_hash 4
-# echo "last 4 hashes ^^"
-# hash_of_src_tree_in_given_commit a502af1f563e7feb38b8ad8d1dc06e937a02524c
-# hash_of_src_tree_in_given_commit b7c1d172
-# hash_of_src_tree_in_given_commit 2145d0455
-# hash_of_src_tree_in_given_commit 2be2e873d95fd9d043b0d037842725f3da2b44a3
-
-# function get_prev_commit_hash() {
-# 	local hash=$(git rev-parse HEAD^)
-# }
+# get_every_single_xbranch_commit_same_src_pretty
 
 # walk back n commits until hash of src tree changes. .....
 
@@ -177,50 +213,107 @@ function get_all_commit_shorts_for_branch() {
 # all possible paths.
 # Also github seems to show last pre-merge commit where src file changed but this script shows subsequent merge commit where file changed.
 # Github agrees with order too, if you go to branch history of commits, just does not show that as most recent file change. Apparantly merges don't count as changing files from timestamp POV. All's well.
-index=0
-curr_src_tree_hash=$HEAD_SRC_TREE_HASH
-commitArray=()
-commitArrayShorthash=() # 7 chars
-echo -e "\033[0;32m Note: Ignore last commit. It's a hanger-on. (2nd to last is breaking change commit)\033[0m"
-while [[ $HEAD_SRC_TREE_HASH == $curr_src_tree_hash ]]; do
-	curr_src_tree_hash=$(grab_srctree_hash_from_backindex $index)
-	curr_commit=$(git rev-parse HEAD~$index)
-	curr_commit_short=${curr_commit:0:7}
-	echo "current src hash: $curr_src_tree_hash and current commit: $curr_commit_short"
-	index=$((index + 1))
-	commitArray+=($curr_commit)
-	commitArrayShorthash+=(${curr_commit:0:7})
-done
+function display_friendly() {
+	echo -e "Head source tree hash: $HEAD_SRC_TREE_HASH\n   (Watching for first change)"
+	local index=0
+	curr_src_tree_hash=$HEAD_SRC_TREE_HASH
+	# commitArray=()
+	# commitArrayShorthash=() # 7 chars
+	echo -e "\033[0;32m Note: Ignore last commit. It's a hanger-on. (2nd to last is breaking change commit)\033[0m"
+	while [[ $HEAD_SRC_TREE_HASH == $curr_src_tree_hash ]]; do
+		curr_src_tree_hash=$(grab_srctree_hash_from_backindex $index)
+		curr_commit=$(git rev-parse HEAD~$index)
+		curr_commit_short=${curr_commit:0:7}
+		echo "current src hash: $curr_src_tree_hash and current commit:$curr_commit $curr_commit_short"
+		index=$((index + 1))
+		# commitArray+=($curr_commit)
+		# commitArrayShorthash+=(${curr_commit:0:7})
+	done
+}
 ## END Tabular Display
-commitArraySize=${#commitArray[@]}
-echo ${commitArray[0]}
-echo ${commitArray[1]}
-echo ${commitArray[2]}
-echo ${commitArray[3]}
-echo ${commitArray[4]}
-echo $commitArraySize
-echo "oldest commit of identical image src code for this branch: ${commitArray[commitArraySize - 2]}" # 0 indexed, -1 to right size -1 to remove last straggler (the hanger-on commit)
 
-echo ${commitArrayShorthash[0]}
-echo ${commitArrayShorthash[1]}
-echo ${commitArrayShorthash[2]}
-echo ${commitArrayShorthash[3]}
-echo ${commitArrayShorthash[4]}
-echo "oldest shorthash of identical image src code: ${commitArrayShorthash[commitArraySize - 2]}" # 0 indexed, -1 to right size -1 to remove last straggler (the hanger-on commit)
+# display_friendly
+
+# commitArraySize=${#commitArray[@]}
+# echo ${commitArray[0]}
+# echo ${commitArray[1]}
+# echo ${commitArray[2]}
+# echo ${commitArray[3]}
+# echo ${commitArray[4]}
+# echo $commitArraySize
+# echo "oldest commit of identical image src code for this branch: ${commitArray[commitArraySize - 2]}" # 0 indexed, -1 to right size -1 to remove last straggler (the hanger-on commit)
+
+# echo ${commitArrayShorthash[0]}
+# echo ${commitArrayShorthash[1]}
+# echo ${commitArrayShorthash[2]}
+# echo ${commitArrayShorthash[3]}
+# echo ${commitArrayShorthash[4]}
+# echo "oldest shorthash of identical image src code: ${commitArrayShorthash[commitArraySize - 2]}" # 0 indexed, -1 to right size -1 to remove last straggler (the hanger-on commit)
 
 # echo $(git branch) | less -FX | xargs -I {} echo "here {} \n"
 # echo ${branches[1]}
 
-for i in "${BRANCHES[@]}"; do
-	echo "Complete me"
-done
+# POC
+# for i in "${BRANCHES[@]}"; do
+# 	echo "branch $i: $(get_head_hash_of_branch $i)"
+# done
 
-function no_arg() {
-	x=$1
-	if [  -z "$1" ]; then
-		x="indeedwillnotbenull"
+# get_head_hash_of_branch
+# get_head_hash_of_branch
+# get_head_hash_of_branch
+
+# function no_arg() {
+# 	x=$1
+# 	if [ -z "$1" ]; then
+# 		x="indeedwillnotbenull"
+# 	fi
+# 	echo "The arg1 $x"
+# }
+
+# no_arg
+
+# function get_numbers() {
+# 	local i=0
+# 	for branch in $(git for-each-ref --format='%(refname)' refs/heads/); do
+# 		echo $i
+# 		i=$((i + 1))
+# 	done
+# }
+# NUMBERS=($(get_numbers))
+#  printf '%s\n' "${NUMBERS[@]}"
+
+
+## UTIL FUNCTIONS FOR ACTUAL RETURNING
+function _get_all_commits_for_branch() {
+	if [ -z "$1" ]; then
+		local branch=$(git rev-parse --abbrev-ref HEAD)
+		local TOP_COMMIT=$(git rev-parse HEAD)
+		BRANCHHEAD_SRCTREE_HASH=$HEAD_SRC_TREE_HASH
+	else
+		local branch=$1
+		BRANCHHEAD_SRCTREE_HASH=$(get_srctree_hash_of_branchhead $1)
+		local TOP_COMMIT=$(git rev-parse $branch)
 	fi
-	echo "The arg1 $x"
+	local index=0
+	local curr_src_tree_hash=$BRANCHHEAD_SRCTREE_HASH
+	# echo -e "\033[0;32m Branch: $branch Note: Ignore last commit. It's a hanger-on. (2nd to last is breaking change commit)\033[0m"
+	while [[ $TARGET_SRCTREE_HASH == $curr_src_tree_hash ]]; do
+		curr_src_tree_hash=$(grab_srctree_hash_from_backindex $index $TOP_COMMIT)
+		if [ $TARGET_SRCTREE_HASH != $curr_src_tree_hash ]; then # clip the end false positive. IMPORTANT IN PROD USE!!
+		return
+		fi
+		curr_commit=$(git rev-parse $TOP_COMMIT~$index)
+		curr_commit_short=${curr_commit:0:7}
+		# echo "current src hash: $curr_src_tree_hash and current commit:$curr_commit $curr_commit_short"
+		echo "$curr_commit"
+		index=$((index + 1))
+	done
 }
 
-no_arg
+function _get_every_single_xbranch_commit_same_src_long() {
+	for i in "${BRANCHES[@]}"; do
+		_get_all_commits_for_branch $i
+	done
+}
+
+_get_every_single_xbranch_commit_same_src_long
