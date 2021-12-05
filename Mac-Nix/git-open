@@ -1,5 +1,11 @@
 #!/bin/bash
 url="$(git config --get remote.origin.url)"
+os=$(uname);
+openCmd="open"
+
+if [ "$os" = "Linux" ]; then
+openCmd="xdg-open"
+fi
 
 while getopts "bc:" opt; do
   case ${opt} in
@@ -23,6 +29,6 @@ else
   url=${url/.git//}
   # url="${url}/tree/${branch}"
   echo $url
-  open $url
+  $openCmd $url
   # xdg-open echo ${url/git@github.com:/https://www.github.com/} # Does not work
 fi
