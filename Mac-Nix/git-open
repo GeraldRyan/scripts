@@ -2,7 +2,6 @@
 url="$(git config --get remote.origin.url)"
 os=$(uname);
 openCmd="open"
-hostregex="(?<=@).+(?=:)"
 
 # using ssh
 git=$(echo $url | cut -c 1-3)
