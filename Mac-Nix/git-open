@@ -1,9 +1,54 @@
 #!/bin/bash
-url="$(git config --get remote.origin.url)"
 os=$(uname);
 openCmd="open"
+dobranch=false
 
-# using ssh
+if [ "$os" = "Linux" ]; then
+openCmd="xdg-open"
+fi
+remote="origin"
+
+while getopts "bc:a:r:" opt; do
+  case ${opt} in
+    r)
+    remote=$OPTARG
+    ;;
+  c)
+    commit=$OPTARG
+    ;;
+  b)
+    dobranch=true
+    ;;
+  a) 
+    if [ "$OPTARG" = "chrome" ]; then
+    browser="chrome"
+    fi 
+    if [ "$OPTARG" = "brave" ]; then
+    browser="Brave Browser"
+    fi
+    openCmd="$openCmd -a '$browser'"
+    echo "Open Command: $openCmd"
+    ;;
+  esac
+done
+
+
+url="$(git config --get remote.$remote.url)"
+
+
+if [ $dobranch = "true" ]; then
+echo "Doing branch"
+    branch=$(git branch | sed -n -e 's/^\* \(.*\)/\1/p')
+    url="${url}/tree/${branch}"
+fi
+
+# if [ $commit = "" ]; then
+#     stem="commit/"
+#     url="${url}${stem}${commit}"
+# fi
+
+
+# USING SSH
 git=$(echo $url | cut -c 1-3)
 if [ $git = "git" ]; then
 echo "transforming ssh url into http url.."
@@ -12,24 +57,11 @@ host=$(echo $url | grep -o -P '(?<=@).*(?=:)')
 userrepo=$(cut -d ":" -f2 <<< "$url")
 url="$prefix$host/$userrepo"
 fi
+# END USING SSH
 
-if [ "$os" = "Linux" ]; then
-openCmd="xdg-open"
-fi
 
-while getopts "bc:" opt; do
-  case ${opt} in
-  c)
-    stem="commit/"
-    commit=$OPTARG
-    url="${url}${stem}${commit}"
-    ;;
-  b)
-    branch=$(git branch | sed -n -e 's/^\* \(.*\)/\1/p')
-    url="${url}/tree/${branch}"
-    ;;
-  esac
-done
+
+
 # branch=$(git branch | sed -n -e 's/^\* \(.*\)/\1/p')
 
 if [ -z $url ]; then
@@ -39,6 +71,8 @@ else
   url=${url/.git//}
   # url="${url}/tree/${branch}"
   echo $url
-  $openCmd $url
+  echo $openCmd
+  echo "$openCmd $url"
+  eval $openCmd $url
   # xdg-open echo ${url/git@github.com:/https://www.github.com/} # Does not work
 fi
