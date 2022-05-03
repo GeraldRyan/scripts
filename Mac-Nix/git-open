@@ -10,7 +10,7 @@ remote="origin"
 
 while getopts "bc:a:r:" opt; do
   case ${opt} in
-    r)
+  r)
     remote=$OPTARG
     ;;
   c)
@@ -39,7 +39,7 @@ url="$(git config --get remote.$remote.url)"
 if [ $dobranch = "true" ]; then
 echo "Doing branch"
     branch=$(git branch | sed -n -e 's/^\* \(.*\)/\1/p')
-    url="${url}/tree/${branch}"
+    url="${url}tree/${branch}"
 fi
 
 # if [ $commit = "" ]; then
