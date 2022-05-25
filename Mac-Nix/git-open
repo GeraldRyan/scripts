@@ -1,10 +1,10 @@
 #!/bin/bash
-os=$(uname);
+os=$(uname)
 openCmd="open"
 dobranch=false
 
 if [ "$os" = "Linux" ]; then
-openCmd="xdg-open"
+  openCmd="xdg-open"
 fi
 remote="origin"
 
@@ -19,12 +19,12 @@ while getopts "bc:a:r:" opt; do
   b)
     dobranch=true
     ;;
-  a) 
+  a)
     if [ "$OPTARG" = "chrome" ]; then
-    browser="chrome"
-    fi 
+      browser="chrome"
+    fi
     if [ "$OPTARG" = "brave" ]; then
-    browser="Brave Browser"
+      browser="Brave Browser"
     fi
     openCmd="$openCmd -a '$browser'"
     echo "Open Command: $openCmd"
@@ -32,35 +32,57 @@ while getopts "bc:a:r:" opt; do
   esac
 done
 
-
 url="$(git config --get remote.$remote.url)"
 
+normalize_url() {
+  git=$(echo $url | cut -c 1-3)
+  echo $url
+  if [[ "$url" != *"@"* ]]; then
+    # url is pristine: standard http or https
+    return
+  elif [ $git = "git" ]; then
+    # They are using ssh
+    echo "transforming ssh url into http url.."
+    prefix="https://"
+    host=$(echo $url | grep -o -P '(?<=@).*(?=:)')
+    userrepo=$(cut -d ":" -f2 <<<"$url")
+    url="$prefix$host/$userrepo"
+    # END USING SSH
+  else
+  # ggrep needed for pcre (perl regex- for lookahead syntax specificially. Maybe just too lazy to change)
+    which ggrep
+    hasggrep=$?
+    if [[ $hasggrep != "0" && $os = "Darwin" ]]; then
+      echo "Can't parse URL. You are on a mac and don't have ggrep installed. Run brew install ggrep (or get your lazy dev to improve product)"
+      exit 1
+    fi
+    grepcmd="grep"
+    if [[ $os = "Darwin" ]]; then
+    grepcmd="ggrep"
+    fi
+    echo "@ is in url $url. Normalizing url"
+    protocol="https://"
+    host=$(echo $url | $grepcmd -o -P '(?<=@).+(?<=\/)')
+    userrepo=$(echo $url | $grepcmd -o -P '(?<=\/)(?!.*\/).+(?=.git)')
+    url=$protocol$host$userrepo/
+    echo "url is $url "
+    echo "Host: $host and userrepo: $userrepo"
+  fi
+}
+
+normalize_url
 
 if [ $dobranch = "true" ]; then
-echo "Doing branch"
-    branch=$(git branch | sed -n -e 's/^\* \(.*\)/\1/p')
-    url="${url}tree/${branch}"
+  echo "Doing branch"
+  # branch=$(git branch | sed -n -e 's/^\* \(.*\)/\1/p') # what is this??
+  branch=$(git rev-parse --abbrev-ref HEAD)
+  url="${url}tree/${branch}"
 fi
 
 # if [ $commit = "" ]; then
 #     stem="commit/"
 #     url="${url}${stem}${commit}"
 # fi
-
-
-# USING SSH
-git=$(echo $url | cut -c 1-3)
-if [ $git = "git" ]; then
-echo "transforming ssh url into http url.."
-prefix="https://"
-host=$(echo $url | grep -o -P '(?<=@).*(?=:)')
-userrepo=$(cut -d ":" -f2 <<< "$url")
-url="$prefix$host/$userrepo"
-fi
-# END USING SSH
-
-
-
 
 # branch=$(git branch | sed -n -e 's/^\* \(.*\)/\1/p')
 
