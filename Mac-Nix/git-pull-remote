@@ -1,0 +1,4 @@
+remote=$1
+upstream_branch=$(git branch --show-current)
+echo 'pulling from' $remote/$upstream_branch
+git pull $remote $upstream_branch
